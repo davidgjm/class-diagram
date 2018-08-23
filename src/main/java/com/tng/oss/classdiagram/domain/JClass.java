@@ -1,22 +1,28 @@
 package com.tng.oss.classdiagram.domain;
 
+import lombok.Builder;
 import lombok.Data;
-import org.neo4j.ogm.annotation.GeneratedValue;
-import org.neo4j.ogm.annotation.Id;
-import org.neo4j.ogm.annotation.NodeEntity;
-import org.neo4j.ogm.annotation.Relationship;
+import lombok.EqualsAndHashCode;
+import org.neo4j.ogm.annotation.*;
 
 import java.util.Set;
 
+@Builder
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NodeEntity
 public class JClass {
+    @EqualsAndHashCode.Include
     @Id
     @GeneratedValue
     Long id;
 
+    @EqualsAndHashCode.Include
+    @Index
     private String name;
 
+    @EqualsAndHashCode.Include
+    @Index
     private String definedInPackage;
 
     @Relationship(type = "INHERITS")
