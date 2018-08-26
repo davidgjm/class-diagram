@@ -64,7 +64,8 @@ public class JavaReflectionServiceImpl implements JavaReflectionService {
     }
 
     private void checkSingleClass(final Set<JClass> entities, final Class<?> javaClass) {
-        log.info("Class info: Type: {}, Name: {}", javaClass.isInterface() ? "Interface" : "Class", javaClass.getName());
+        log.info("Checking Type: {}, Name: {}", javaClass.isInterface() ? "Interface" : "Class", javaClass.getName());
+        if(javaClass.getSimpleName().isEmpty()) return;
         JClass entity = getJavaClass(entities, javaClass);
 
         AtomicReference<Class<?>> sup = new AtomicReference<>();
@@ -72,11 +73,11 @@ public class JavaReflectionServiceImpl implements JavaReflectionService {
         AtomicReference<JClass> entityReference = new AtomicReference<>(entity);
 
         ReflectionUtils.getSuperTypes(javaClass).forEach(s -> {
-            log.info("SUPER - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
+            log.debug("SUPER - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
             JClass superType = getJavaClass(entities, s);
 
             if (s.isInterface()) {
-                entityReference.get().getImplementedInterfaces().add(superType);
+                entityReference.get().getExtendedInterfaces().add(superType);
             } else {
                 entityReference.get().setParent(superType);
             }
@@ -86,32 +87,32 @@ public class JavaReflectionServiceImpl implements JavaReflectionService {
             }
         });
 
-        reflections.getSubTypesOf(javaClass).forEach(s -> {
-            log.info("SUB - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
+/*        reflections.getSubTypesOf(javaClass).forEach(s -> {
+            log.debug("SUB - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
             JClass subtype = getJavaClass(entities, s);
-            if (!entityReference.get().isInterface()) {
-                entityReference.get().getSubclasses().add(subtype);
-            } else {
-                if (s.isInterface()) {
-                    entityReference.get().getSubclasses().add(subtype);
-                } else {
-                    Type superType = s.getGenericSuperclass();
-                    log.info("Super class type: {}", superType.getClass());
-                    if (superType instanceof Class) {
-                        Class type = (Class) superType;
-                        if (type.equals(javaClass)) {
-                            entityReference.get().getImplementations().add(subtype);
+            Type superType = s.getGenericSuperclass();
+            if (superType instanceof Class) {
+                Class type = (Class) superType;
+                if (type.equals(javaClass)) {
+                    if (!entityReference.get().isInterface()) {
+//                        entityReference.get().getSubclasses().add(subtype);
+                    } else {
+                        if (s.isInterface()) {
+//                            entityReference.get().getSubclasses().add(subtype);
                         } else {
-                            log.warn("Not direct implementation: {}", s);
+                            entityReference.get().getImplementations().add(subtype);
                         }
                     }
-
+                } else {
+                    log.warn("Indirect implementation: {}", s);
                 }
             }
+
+
             sub.set(s);
             if (sup.get() != null && !sup.get().equals(s))
                 checkSingleClass(entities, s);
-        });
+        });*/
     }
 
     private void saveClass(JClass entity) {

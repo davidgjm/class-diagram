@@ -4,8 +4,10 @@ import com.tng.oss.classdiagram.domain.JClass;
 import com.tng.oss.classdiagram.respositories.JClassRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -17,8 +19,10 @@ public class JClassServiceImpl implements JClassService {
         this.classRepository = classRepository;
     }
 
+    @Transactional
     @Override
     public void saveOrUpdate(JClass entity) {
+        log.info("Saving entity into graph db. {}", entity);
         Optional<JClass> persistedOptional = find(entity);
         JClass target;
         /*
@@ -33,13 +37,31 @@ public class JClassServiceImpl implements JClassService {
             target = entity;
         } else {
             target = persistedOptional.get();
+            log.info("The entity already exists. {}", target);
             target.setImplementations(entity.getImplementations());
-            target.setImplementedInterfaces(entity.getImplementedInterfaces());
+            target.setExtendedInterfaces(entity.getExtendedInterfaces());
             target.setParent(entity.getParent());
             target.setInterface(entity.isInterface());
             target.setSubclasses(entity.getSubclasses());
         }
-        classRepository.save(target);
+        doSaveJclass(target);
+    }
+
+    @Transactional
+    protected void doSaveJclass(JClass entity) {
+        doAtomicSave(entity);
+        entity.getImplementations().forEach(this::doAtomicSave);
+        entity.getSubclasses().forEach(this::doAtomicSave);
+        entity.getExtendedInterfaces().forEach(this::doAtomicSave);
+    }
+
+    private void doAtomicSave(JClass entity, int depth) {
+        JClass saved= classRepository.save(entity, depth);
+        log.info("Saved entity: {}", saved);
+    }
+
+    private void doAtomicSave(JClass entity) {
+        this.doAtomicSave(entity, 0);
     }
 
     @Override
@@ -54,7 +76,14 @@ public class JClassServiceImpl implements JClassService {
         if (entity.getId() != null) {
             return classRepository.findById(entity.getId());
         } else {
-            return classRepository.findJClassByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
+            List<JClass> matches = classRepository.findAllByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
+            int size = matches.size();
+            if (size > 1) {
+                log.error("Multiple classes with the same name found!");
+                matches.forEach(k -> log.error(k.toString()));
+            }
+//            return classRepository.findJClassByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
+            return matches.stream().findAny();
         }
     }
 

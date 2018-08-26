@@ -20,11 +20,11 @@ public class JClass {
 
     private boolean isInterface;
 
-    @Relationship(type = "EXTENDS")
+    @Relationship(type = "INHERITS")
     private JClass parent;
 
-    @Relationship(type = "IMPLEMENTS")
-    private Set<JClass> implementedInterfaces = new HashSet<>();
+    @Relationship(type = "EXTENDS")
+    private Set<JClass> extendedInterfaces = new HashSet<>();
 
     @Relationship(type = "INHERITED_BY")
     private Set<JClass> subclasses=new HashSet<>();
@@ -82,12 +82,12 @@ public class JClass {
         this.parent = parent;
     }
 
-    public Set<JClass> getImplementedInterfaces() {
-        return implementedInterfaces;
+    public Set<JClass> getExtendedInterfaces() {
+        return extendedInterfaces;
     }
 
-    public void setImplementedInterfaces(Set<JClass> implementedInterfaces) {
-        this.implementedInterfaces = implementedInterfaces;
+    public void setExtendedInterfaces(Set<JClass> extendedInterfaces) {
+        this.extendedInterfaces = extendedInterfaces;
     }
 
     public Set<JClass> getSubclasses() {
