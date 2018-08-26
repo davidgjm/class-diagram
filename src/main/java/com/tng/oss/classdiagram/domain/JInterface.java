@@ -10,7 +10,7 @@ import org.neo4j.ogm.annotation.Relationship;
 import java.util.Set;
 
 @Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+//@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NodeEntity
 public class JInterface {
     @EqualsAndHashCode.Include
@@ -29,4 +29,8 @@ public class JInterface {
 
     @Relationship(type = "IMPLEMENTED_BY", direction = Relationship.INCOMING)
     private Set<JClass> implementations;
+
+    public String getFQDN() {
+        return definedInPackage + "." + name;
+    }
 }

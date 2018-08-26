@@ -9,7 +9,7 @@ import java.util.Set;
 
 @Builder
 @Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+//@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NodeEntity
 public class JClass {
     @EqualsAndHashCode.Include
@@ -33,4 +33,8 @@ public class JClass {
 
     @Relationship(type = "INHERITED_BY", direction = Relationship.INCOMING)
     private Set<JClass> subclasses;
+
+    public String getFQDN() {
+        return definedInPackage + "." + name;
+    }
 }

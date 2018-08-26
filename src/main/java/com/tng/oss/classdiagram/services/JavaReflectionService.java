@@ -7,7 +7,7 @@ import java.util.Set;
 
 public interface JavaReflectionService {
 
-    Set<JClass> scanForClasses();
+    void scanJavaTypes(String basePackage);
 
-    Set<JInterface> scanForInterfaces();
+
 }
