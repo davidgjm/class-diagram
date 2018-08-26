@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.stream.Stream;
+
 @Slf4j
 @RestController
 @RequestMapping("/diagram/class")
@@ -17,8 +19,8 @@ public class ClassHierarchyAnalysisController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
-    public void analyze(@RequestParam String packageName) {
-        log.info("Analyzing class hierarchy for package {}", packageName);
-        reflectionService.scanJavaTypes(packageName);
+    public void analyze(@RequestBody String[] packageNames) {
+        log.info("Analyzing class hierarchy for package {}", packageNames);
+        Stream.of(packageNames).forEach(reflectionService::scanJavaTypes);
     }
 }

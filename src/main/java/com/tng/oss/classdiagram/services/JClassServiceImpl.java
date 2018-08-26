@@ -33,8 +33,8 @@ public class JClassServiceImpl implements JClassService {
          */
 
         if (!persistedOptional.isPresent()) {
-            log.info("The provided entity does not exist in db. Creating...");
             target = entity;
+            log.info("The provided entity does not exist in db. Creating {}", target);
         } else {
             target = persistedOptional.get();
             log.info("The entity already exists. {}", target);
@@ -44,7 +44,7 @@ public class JClassServiceImpl implements JClassService {
             target.setInterface(entity.isInterface());
             target.setSubclasses(entity.getSubclasses());
         }
-        doSaveJclass(target);
+        classRepository.save(target);
     }
 
     @Transactional
@@ -56,8 +56,10 @@ public class JClassServiceImpl implements JClassService {
     }
 
     private void doAtomicSave(JClass entity, int depth) {
-        JClass saved= classRepository.save(entity, depth);
-        log.info("Saved entity: {}", saved);
+        if (!classRepository.exists(entity.getClassName(), entity.getPackageName())) {
+            JClass saved = classRepository.save(entity, depth);
+            log.info("Saved entity: {}", saved);
+        }
     }
 
     private void doAtomicSave(JClass entity) {
@@ -72,8 +74,9 @@ public class JClassServiceImpl implements JClassService {
 
     }
 
-    private Optional<JClass> find(JClass entity) {
-        if (entity.getId() != null) {
+    @Transactional
+    protected Optional<JClass> find(JClass entity) {
+/*        if (entity.getId() != null) {
             return classRepository.findById(entity.getId());
         } else {
             List<JClass> matches = classRepository.findAllByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
@@ -84,7 +87,16 @@ public class JClassServiceImpl implements JClassService {
             }
 //            return classRepository.findJClassByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
             return matches.stream().findAny();
+        }*/
+
+
+        List<JClass> matches = classRepository.findAllByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
+        int size = matches.size();
+        if (size > 1) {
+            log.error("Multiple classes with the same name found!");
+            matches.forEach(k -> log.error(k.toString()));
         }
+        return matches.stream().findFirst();
     }
 
     @Override
