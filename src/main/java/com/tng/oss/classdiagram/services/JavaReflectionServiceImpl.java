@@ -1,14 +1,16 @@
 package com.tng.oss.classdiagram.services;
 
 import com.tng.oss.classdiagram.domain.JClass;
-import com.tng.oss.classdiagram.domain.JInterface;
 import lombok.extern.slf4j.Slf4j;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -16,13 +18,12 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class JavaReflectionServiceImpl implements JavaReflectionService {
     private Reflections reflections;
-    private final JInterfaceService interfaceService;
     private final JClassService classService;
 
-    public JavaReflectionServiceImpl(JInterfaceService interfaceService, JClassService classService) {
-        this.interfaceService = interfaceService;
+    public JavaReflectionServiceImpl(JClassService classService) {
         this.classService = classService;
     }
+
 
     private void setupReflections(String basePackage) {
         log.info("Initializing reflections with specified package: {}", basePackage);
@@ -35,7 +36,14 @@ public class JavaReflectionServiceImpl implements JavaReflectionService {
         setupReflections(basePackage);
 
         Set<Class<?>> allClasses = getAllClasses();
-        allClasses.forEach(this::checkSingleClass);
+
+        Set<JClass> entites = new HashSet<>();
+        allClasses.stream()
+                .filter(c -> !c.isAnnotation() && !c.isMemberClass() && !c.isAnonymousClass())
+                .filter(c -> Modifier.isPublic(c.getModifiers()))
+                .forEach(c -> checkSingleClass(entites, c));
+
+        entites.forEach(this::saveClass);
 
     }
 
@@ -43,27 +51,72 @@ public class JavaReflectionServiceImpl implements JavaReflectionService {
         return reflections.getSubTypesOf(Object.class);
     }
 
-    private void checkSingleClass(Class<?> javaClass) {
-        System.out.println(javaClass);
+    private JClass getJavaClass(final Set<JClass> entities, final Class<?> javaClass) {
+        JClass entity = JClass.from(javaClass);
+        Optional<JClass> jClassOptional = entities.stream().filter(e -> e.equals(JClass.from(javaClass)))
+                .findAny();
+        if (jClassOptional.isPresent()) {
+            entity = jClassOptional.get();
+        } else {
+            entities.add(entity);
+        }
+        return entity;
+    }
+
+    private void checkSingleClass(final Set<JClass> entities, final Class<?> javaClass) {
+        log.info("Class info: Type: {}, Name: {}", javaClass.isInterface() ? "Interface" : "Class", javaClass.getName());
+        JClass entity = getJavaClass(entities, javaClass);
+
         AtomicReference<Class<?>> sup = new AtomicReference<>();
         AtomicReference<Class<?>> sub = new AtomicReference<>();
+        AtomicReference<JClass> entityReference = new AtomicReference<>(entity);
 
         ReflectionUtils.getSuperTypes(javaClass).forEach(s -> {
-            System.out.println("\t--> " + s.getName());
+            log.info("SUPER - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
+            JClass superType = getJavaClass(entities, s);
+
+            if (s.isInterface()) {
+                entityReference.get().getImplementedInterfaces().add(superType);
+            } else {
+                entityReference.get().setParent(superType);
+            }
             sup.set(s);
-            if (sub.get() != null && !sub.get().equals(s))
-                checkSingleClass(s);
+            if (sub.get() != null && !sub.get().equals(s)) {
+                checkSingleClass(entities, s);
+            }
         });
 
         reflections.getSubTypesOf(javaClass).forEach(s -> {
+            log.info("SUB - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
+            JClass subtype = getJavaClass(entities, s);
+            if (!entityReference.get().isInterface()) {
+                entityReference.get().getSubclasses().add(subtype);
+            } else {
+                if (s.isInterface()) {
+                    entityReference.get().getSubclasses().add(subtype);
+                } else {
+                    Type superType = s.getGenericSuperclass();
+                    log.info("Super class type: {}", superType.getClass());
+                    if (superType instanceof Class) {
+                        Class type = (Class) superType;
+                        if (type.equals(javaClass)) {
+                            entityReference.get().getImplementations().add(subtype);
+                        } else {
+                            log.warn("Not direct implementation: {}", s);
+                        }
+                    }
+
+                }
+            }
             sub.set(s);
-            System.out.println("\t<-- " + s.getName());
             if (sup.get() != null && !sup.get().equals(s))
-                checkSingleClass(s);
+                checkSingleClass(entities, s);
         });
     }
 
-    private void saveClass(Class<?> javaClass) {
+    private void saveClass(JClass entity) {
+        log.info("Saving entity: {}", entity.getFQDN());
+        classService.saveOrUpdate(entity);
 
     }
 }

@@ -18,14 +18,28 @@ public class JClassServiceImpl implements JClassService {
     }
 
     @Override
-    public void saveOrUpdate(JClass instance) {
+    public void saveOrUpdate(JClass entity) {
+        Optional<JClass> persistedOptional = find(entity);
+        JClass target;
         /*
          * 1. Saves the class itself
          * 2. parent
          * 3. implementedInterfaces
          * 4. subclasses
          */
-        classRepository.save(instance);
+
+        if (!persistedOptional.isPresent()) {
+            log.info("The provided entity does not exist in db. Creating...");
+            target = entity;
+        } else {
+            target = persistedOptional.get();
+            target.setImplementations(entity.getImplementations());
+            target.setImplementedInterfaces(entity.getImplementedInterfaces());
+            target.setParent(entity.getParent());
+            target.setInterface(entity.isInterface());
+            target.setSubclasses(entity.getSubclasses());
+        }
+        classRepository.save(target);
     }
 
     @Override
@@ -40,13 +54,13 @@ public class JClassServiceImpl implements JClassService {
         if (entity.getId() != null) {
             return classRepository.findById(entity.getId());
         } else {
-            return classRepository.findByNameAndAndDefinedInPackage(entity.getName(), entity.getDefinedInPackage());
+            return classRepository.findJClassByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
         }
     }
 
     @Override
     public boolean exists(JClass entity) {
         Assert.notNull(entity, "entity cannot be null!");
-        return classRepository.existsJClassByNameAndDefinedInPackage(entity.getName(), entity.getDefinedInPackage());
+        return classRepository.existsJClassByClassNameAndPackageName(entity.getClassName(), entity.getPackageName());
     }
 }
