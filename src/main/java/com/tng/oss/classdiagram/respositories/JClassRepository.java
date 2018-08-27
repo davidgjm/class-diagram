@@ -20,4 +20,5 @@ public interface JClassRepository extends GenericNeo4jRepository<JClass> {
             "WHERE c.className = {className} AND c.packageName = {packageName} " +
             "RETURN COUNT(c) > 0")
     boolean exists(@Param("className") String className, @Param("packageName") String packageName);
+
 }

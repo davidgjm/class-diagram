@@ -73,7 +73,7 @@ public class JavaReflectionServiceImpl implements JavaReflectionService {
         AtomicReference<JClass> entityReference = new AtomicReference<>(entity);
 
         ReflectionUtils.getSuperTypes(javaClass).forEach(s -> {
-            log.debug("SUPER - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
+            log.info("SUPER - {}: {}", s.isInterface() ? "Interface" : "Class", s.getName());
             JClass superType = getJavaClass(entities, s);
 
             if (s.isInterface()) {

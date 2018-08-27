@@ -3,6 +3,8 @@ package com.tng.oss.classdiagram.services;
 import com.tng.oss.classdiagram.domain.JClass;
 import com.tng.oss.classdiagram.respositories.JClassRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.neo4j.ogm.session.Session;
+import org.neo4j.ogm.session.SessionFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -44,7 +46,8 @@ public class JClassServiceImpl implements JClassService {
             target.setInterface(entity.isInterface());
             target.setSubclasses(entity.getSubclasses());
         }
-        classRepository.save(target);
+//        classRepository.save(target, 1);
+        doSaveJclass(target);
     }
 
     @Transactional
@@ -63,7 +66,7 @@ public class JClassServiceImpl implements JClassService {
     }
 
     private void doAtomicSave(JClass entity) {
-        this.doAtomicSave(entity, 0);
+        this.doAtomicSave(entity, 1);
     }
 
     @Override
